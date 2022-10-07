@@ -1,0 +1,97 @@
+    <!DOCTYPE html>
+<html>
+
+
+<button id = "ButtonX">Rotate X</button>
+<button id = "ButtonY">Rotate Y</button>
+<button id = "ButtonZ">Rotate Z</button>
+<button id = "ButtonT">Toggle Rotation</button>
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+
+in vec4 vPosition;
+in vec4 vNormal;
+out vec4 fColor;
+
+uniform vec4 ambientProduct, diffuseProduct, specularProduct;
+uniform mat4 modelViewMatrix;
+uniform mat4 projectionMatrix;
+uniform vec4 lightPosition;
+uniform float shininess;
+
+uniform mat4 u_modelMatrix;
+uniform vec4 u_Eye;
+varying float v_Dist;
+
+uniform mat3 normalMatrix;
+
+void main()
+{
+
+    v_Dist = distance(u_modelMatrix * vPosition, u_Eye);
+    vec3 pos = (modelViewMatrix * vPosition).xyz;
+    vec3 light = lightPosition.xyz;
+    vec3 L = normalize( light - pos );
+    vec3 E = normalize( -pos );
+    vec3 H = normalize( L + E );
+
+    // Transform vertex normal into eye coordinates
+
+    vec3 N = normalize( normalMatrix*vNormal.xyz);
+
+    // Compute terms in the illumination equation
+    vec4 ambient = vec4(0.4,0.4,0.4,0.4);
+
+    float Kd = max( dot(L, N), 0.0 );
+    vec4  diffuse = Kd*diffuseProduct;
+
+    float Ks = pow( max(dot(N, H), 0.0), shininess );
+    vec4  specular = Ks * specularProduct;
+
+    if( dot(L, N) < 0.0 ) {
+	specular = vec4(0.0, 0.0, 0.0, 1.0);
+    }
+
+    gl_Position = projectionMatrix * modelViewMatrix * vPosition;
+
+    fColor = ambient + diffuse +specular;
+
+    fColor.a = 1.0;
+
+}
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+
+precision mediump float;
+
+out vec4 fColor;
+uniform vec3 u_FogColor;
+uniform vec2 u_FogDist;
+out float v_Dist;
+void
+main()
+{
+    //float fogFactor = clamp((u_FogDist.y - v_Dist) / (u_FogDist.y - u_FogDist.x), 0.0, 1.0);
+    float density = 0.006;
+    float LOG2 = 1.442695;
+    float fogFactor = exp2 (-density * density * v_Dist * v_Dist * LOG2);
+    fogFactor = clamp(fogFactor,0.0,1.0);
+    vec3 color = mix(u_FogColor, vec3(fColor), fogFactor);
+    fColor = vec4(color, fColor.a);
+}
+</script>
+
+<script type="text/javascript" src="Common/webgl-utils.js"></script>
+<script type="text/javascript" src="Common/initShaders.js"></script>
+<script type="text/javascript" src="Common/MV.js"></script>
+<script type="text/javascript" src="vertices.js"></script>
+<script type="text/javascript" src="patches.js"></script>
+<script type="text/javascript" src="teapotECMA6.js"></script>
+
+<body>
+<canvas id="gl-canvas" width="512" height="512">
+Oops ... your browser doesn't support the HTML5 canvas element
+</canvas>
+</body>
+</html>
